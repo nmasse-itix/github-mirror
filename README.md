@@ -8,7 +8,7 @@ When using it as a mirror from GitHub, you might want all repositories created i
 ## Compilation
 
 ```sh
-go build -o mirror-github
+go build -o github-mirror
 ```
 
 ## Pre-requisites
