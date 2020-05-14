@@ -19,7 +19,7 @@ go build -o mirror-github
 ## Usage
 
 ```sh
-cat > mirror-github.yaml <<EOF
+cat > config.yaml <<EOF
 GitHub:
   PersonalToken: GITHUB_PERSONAL_ACCESS_TOKEN
 Gitea:
@@ -29,9 +29,9 @@ EOF
 ```
 
 ```sh
-./mirror-github
+./mirror-github config.yaml
 ```
 
 ## In a crontab
 
-In a crontab, you can add the `LogFile` directive to `mirror-github.yaml` to collect logs over multiple runs.
+In a crontab, you can add the `LogFile` directive to `config.yaml` to collect logs over multiple runs.

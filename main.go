@@ -45,18 +45,29 @@ func (list GHRepositoryList) Swap(i, j int) {
 }
 
 func initConfig() {
-	viper.SetConfigName("mirror-github") // name of config file (without extension)
-	viper.AddConfigPath("/etc/")
-	viper.AddConfigPath("$HOME/.mirror-github")
-	viper.AddConfigPath(".") // optionally look for config in the working directory
-	err := viper.ReadInConfig()
+	if len(os.Args) != 2 {
+		fmt.Printf("Usage: %s config.yaml\n", os.Args[0])
+		os.Exit(1)
+	}
+
+	fd, err := os.Open(os.Args[1])
 	if err != nil {
-		panic(fmt.Errorf("Cannot read config file: %s\n", err))
+		fmt.Printf("open: %s: %s\n", os.Args[0], err)
+		os.Exit(1)
+	}
+	defer fd.Close()
+
+	viper.SetConfigType("yaml")
+	err = viper.ReadConfig(fd)
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
 	}
 
 	for _, config := range []string{"GitHub.PersonalToken", "Gitea.ServerURL", "Gitea.PersonalToken"} {
 		if viper.GetString(config) == "" {
-			panic(fmt.Sprintf("key %s is missing from configuration file", config))
+			fmt.Printf("key %s is missing from configuration file\n", config)
+			os.Exit(1)
 		}
 	}
 }
@@ -66,7 +77,8 @@ func initLogFile() {
 	if logFile != "" {
 		logHandle, err := os.OpenFile(logFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0600)
 		if err != nil {
-			panic(fmt.Errorf("Cannot open log file '%s': %s\n", logFile, err))
+			fmt.Printf("Cannot open log file '%s': %s\n", logFile, err)
+			os.Exit(1)
 		}
 		log.SetOutput(logHandle)
 	}
@@ -206,7 +218,7 @@ func computeRepositoriesToMigrate(gh GHRepositoryList, gt GTRepositoryList) GHRe
 	return toMigrate
 }
 
-func migrate(ghRepo *github.Repository, gtClient *gitea.Client, gtUser *gitea.User) {
+func migrate(ghRepo *github.Repository, gtClient *gitea.Client, gtUser *gitea.User) error {
 	migrationOptions := gitea.MigrateRepoOption{
 		CloneAddr:    *ghRepo.CloneURL,
 		AuthUsername: *ghRepo.Owner.Login,
@@ -218,9 +230,7 @@ func migrate(ghRepo *github.Repository, gtClient *gitea.Client, gtUser *gitea.Us
 		Description:  *ghRepo.Description,
 	}
 	_, err := gtClient.MigrateRepo(migrationOptions)
-	if err != nil {
-		log.Fatal(fmt.Sprintf("MigrateRepo: %s: %s", ghRepo.Name, err))
-	}
+	return err
 }
 
 func main() {
@@ -249,8 +259,17 @@ func main() {
 	log.Printf("There are %d repositories to migrate from GitHub to Gitea.\n", len(toMigrate))
 
 	// Migrate each repository
+	var ok bool = true
 	for _, repo := range toMigrate {
-		fmt.Printf("Migrating %s...\n", *repo.Name)
-		migrate(repo, gtClient, gtUserInfo)
+		log.Printf("Migrating %s...\n", *repo.Name)
+		err := migrate(repo, gtClient, gtUserInfo)
+		if err != nil {
+			log.Printf("MigrateRepo: %s: %s", *repo.Name, err)
+			ok = false
+		}
+	}
+
+	if !ok {
+		os.Exit(1)
 	}
 }
