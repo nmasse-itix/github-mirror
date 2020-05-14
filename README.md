@@ -29,7 +29,7 @@ EOF
 ```
 
 ```sh
-./mirror-github config.yaml
+./github-mirror config.yaml
 ```
 
 ## In a crontab

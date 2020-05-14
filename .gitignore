@@ -1,2 +1,3 @@
 config.yaml
-mirror-github*
+github-mirror*
+SHA256SUMS
