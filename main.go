@@ -219,6 +219,12 @@ func computeRepositoriesToMigrate(gh GHRepositoryList, gt GTRepositoryList) GHRe
 }
 
 func migrate(ghRepo *github.Repository, gtClient *gitea.Client, gtUser *gitea.User) error {
+	// the description is an optional field
+	var description string = ""
+	if ghRepo.Description != nil {
+		description = *ghRepo.Description
+	}
+
 	migrationOptions := gitea.MigrateRepoOption{
 		CloneAddr:    *ghRepo.CloneURL,
 		AuthUsername: *ghRepo.Owner.Login,
@@ -227,7 +233,7 @@ func migrate(ghRepo *github.Repository, gtClient *gitea.Client, gtUser *gitea.Us
 		RepoName:     *ghRepo.Name,
 		Mirror:       true,
 		Private:      *ghRepo.Private,
-		Description:  *ghRepo.Description,
+		Description:  description,
 	}
 	_, err := gtClient.MigrateRepo(migrationOptions)
 	return err
